@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Ojuelegba Traffic Lab</title>
+    <meta
+      name="description"
+      content="An academic software simulation comparing fixed-time and IoT-responsive traffic control."
+    />
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23102c29'/%3E%3Ccircle cx='16' cy='10' r='4' fill='%23ffbb56'/%3E%3Ccircle cx='16' cy='23' r='4' fill='%2357d8a1'/%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <header>
+      <a class="brand" href="#">
+        <span class="brand-icon">◉</span>
+        OJUELEGBA <span>TRAFFIC LAB</span>
+      </a>
+      <span class="badge">SOFTWARE SIMULATION ONLY</span>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <div class="eyebrow">TRANSPORT SYSTEMS / LAGOS, NIGERIA</div>
+          <h1>A smarter signal.<br />A clearer comparison.</h1>
+          <p>
+            Explore how traffic-responsive control changes waiting time and flow
+            at a four-way intersection.
+          </p>
+        </div>
+        <div class="study">
+          UNDERGRADUATE RESEARCH<br />
+          <strong>Ojuelegba case study</strong>
+          <span>Illustrative traffic · schematic intersection</span>
+        </div>
+      </div>
+      <div class="workspace">
+        <aside class="panel controls">
+          <div class="sectionhead">
+            <h2>Scenario setup</h2>
+            <span>01</span>
+          </div>
+          <label class="label">CONTROL METHOD</label>
+          <div class="segmented">
+            <button id="fixed">Fixed-time</button>
+            <button id="responsive" class="selected">IoT-responsive</button>
+          </div>
+          <p class="hint" id="modehint">
+            Green time adapts to detected queue length.
+          </p>
+          <div class="sectionhead small">
+            <h3>Arrival demand</h3>
+            <span>vehicles / min</span>
+          </div>
+          <div id="sliders"></div>
+          <div class="fields">
+            <label>
+              Duration
+              <select id="duration">
+                <option value="300">5 minutes</option>
+                <option value="600" selected>10 minutes</option>
+                <option value="900">15 minutes</option>
+              </select>
+            </label>
+            <label>
+              Random seed<input
+                type="number"
+                id="seed"
+                value="42"
+                min="0"
+                max="4294967295"
+              />
+            </label>
+          </div>
+          <label class="speed">
+            Playback speed
+            <select id="speed">
+              <option value="1">1×</option>
+              <option value="5" selected>5×</option>
+              <option value="20">20×</option>
+            </select>
+          </label>
+          <button class="primary" id="start">▶ Start simulation</button>
+          <div class="buttonrow">
+            <button id="pause">Pause</button>
+            <button id="reset">↺ Reset</button>
+          </div>
+          <button id="run" class="outline">Run to completion</button>
+          <p class="hint">
+            Demand changes reset the current run. Comparisons always replay
+            identical arrivals.
+          </p>
+        </aside>
+        <section class="panel intersection">
+          <div class="sectionhead">
+            <div>
+              <h2>Intersection live view</h2>
+              <p>Schematic · straight-through movements</p>
+            </div>
+            <span class="live" id="status">READY</span>
+          </div>
+          <div class="map">
+            <canvas
+              id="canvas"
+              width="760"
+              height="540"
+              aria-label="Animated four-way traffic intersection"
+            ></canvas>
+            <div class="map-label north">NORTH</div>
+            <div class="map-label east">EAST</div>
+            <div class="map-label south">SOUTH</div>
+            <div class="map-label west">WEST</div>
+            <div class="map-note">
+              OJUELEGBA<br />
+              <span>SIMULATION ZONE</span>
+            </div>
+          </div>
+          <div class="phasebar">
+            <div>
+              <span class="eyebrow">CURRENT PHASE</span>
+              <strong id="phase">North · green</strong>
+            </div>
+            <div>
+              <span class="eyebrow">PHASE REMAINING</span>
+              <strong id="remaining">15 s</strong>
+            </div>
+            <div>
+              <span class="eyebrow">SIMULATED TIME</span>
+              <strong id="clock">00:00 / 10:00</strong>
+            </div>
+          </div>
+        </section>
+        <aside class="panel telemetry">
+          <div class="sectionhead">
+            <h2>Live telemetry</h2>
+            <span>02</span>
+          </div>
+          <div id="metrics"></div>
+          <h3 class="approach-title">Approach readings</h3>
+          <div id="approaches"></div>
+          <p class="hint">
+            Counts = cumulative arrivals. Levels use detected queues: low 0–5,
+            medium 6–11, high 12+ vehicles.
+          </p>
+          <div class="modebadge" id="modebadge">IoT-responsive control</div>
+        </aside>
+      </div>
+      <section class="panel pipeline">
+        <div class="sectionhead">
+          <div>
+            <h2>The simulated IoT pipeline</h2>
+            <p>
+              Every component below runs logically inside this browser. No
+              physical connections.
+            </p>
+          </div>
+          <span id="packet">0 packets</span>
+        </div>
+        <div class="pipeline-nodes" id="pipeline"></div>
+        <div class="decision">
+          <span>DECISION TRACE</span>
+          <strong id="decision"
+            >Waiting for the first vehicle-count reading.</strong
+          >
+        </div>
+      </section>
+      <section class="panel results">
+        <div class="sectionhead">
+          <div>
+            <div class="eyebrow">SAME DEMAND. TWO METHODS.</div>
+            <h2>Performance comparison</h2>
+            <p id="resultscenario">
+              Run both controllers with the current scenario and seed.
+            </p>
+          </div>
+          <button class="primary" id="compare">Compare results</button>
+        </div>
+        <div id="results">
+          <div class="empty">
+            <span>▥</span>
+            <h3>Your experiment starts here</h3>
+            <p>
+              Compare both methods to see waiting time, queues, throughput and
+              signal timing.
+            </p>
+          </div>
+        </div>
+        <p class="hint">
+          Average wait includes elapsed queue time for all arrivals, including
+          vehicles still queued. Average queue is time-weighted across all
+          approaches. Results cover the selected horizon; residual queues are
+          not drained.
+        </p>
+      </section>
+      <section class="method">
+        <div>
+          <div class="eyebrow">MODEL & METHODOLOGY</div>
+          <h2>Designed to be explained.</h2>
+          <p>
+            Design and Simulation of an IoT-Driven Smart Traffic Light Control
+            System: A Case Study of Ojuelegba, Lagos.
+          </p>
+        </div>
+        <div>
+          <details open>
+            <summary>How the controller decides</summary>
+            <p>
+              Read queue counts each simulated second → classify demand →
+              allocate green at the next phase → update signal → record metrics
+              → move vehicles → repeat. North → East → South → West rotates
+              without skipping, preventing starvation. Fixed mode gives every
+              approach 25 seconds. Responsive mode gives low queues 15 seconds,
+              medium 25 seconds and high 40 seconds. Each phase ends with 3
+              seconds amber and 2 seconds all-red clearance. Only the green
+              approach discharges vehicles.
+            </p>
+          </details>
+          <details>
+            <summary>Assumptions and academic limitations</summary>
+            <p>
+              Arrivals follow seeded Poisson demand in vehicles per minute. Each
+              approach has one idealised incoming lane; one vehicle is served
+              every 2 seconds during green. Detection is perfect, transmission
+              is instantaneous and lossless, and the cloud is an in-browser
+              module. No turns, pedestrians, lane changing, incidents, or real
+              road geometry are modelled. These are illustrative inputs, not
+              field measurements. Responsive control is not guaranteed to
+              outperform fixed timing in every scenario. Use several seeds and
+              calibrated demand for a research evaluation.
+            </p>
+          </details>
+          <details>
+            <summary>Metrics and signal timing</summary>
+            <p>
+              Waiting time is time spent in the queue. Flow is discharged
+              vehicles divided by elapsed simulated minutes. Average queue is
+              the sum of queue observations divided by elapsed seconds; maximum
+              and final queues are also recorded. Fixed cycle = 120 seconds
+              including clearance. Responsive cycles range from 80 to 180
+              seconds. Average cycle includes only completed cycles; green
+              averages include allocated phases. Per-approach red time is
+              elapsed time since that approach was last green.
+            </p>
+          </details>
+        </div>
+      </section>
+      <footer>
+        OJUELEGBA TRAFFIC LAB
+        <span>Academic demonstration · Entirely software simulated</span>
+      </footer>
+    </main>
+    <script type="module" src="app.js"></script>
+    <script>
+      (function () {
+        function c() {
+          var b =
+            a.contentDocument || (a.contentWindow && a.contentWindow.document);
+          if (b) {
+            var d = b.createElement('script');
+            d.innerHTML =
+              "window.__CF$cv$params={r:'a495ef107f49590c',t:'MTc5MTgwNjMxOA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";
+            b.getElementsByTagName('head')[0].appendChild(d);
+          }
+        }
+        if (document.body) {
+          var a = document.createElement('iframe');
+          a.height = 1;
+          a.width = 1;
+          a.style.position = 'absolute';
+          a.style.top = 0;
+          a.style.left = 0;
+          a.style.border = 'none';
+          a.style.visibility = 'hidden';
+          document.body.appendChild(a);
+          if ('loading' !== document.readyState) c();
+          else if (window.addEventListener)
+            document.addEventListener('DOMContentLoaded', c);
+          else {
+            var e = document.onreadystatechange || function () {};
+            document.onreadystatechange = function (b) {
+              e(b);
+              'loading' !== document.readyState &&
+                ((document.onreadystatechange = e), c());
+            };
+          }
+        }
+      })();
+    </script>
+  </body>
+</html>
